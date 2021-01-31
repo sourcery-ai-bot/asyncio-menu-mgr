@@ -51,32 +51,23 @@ async def onRenderMenuItem(inputClock, text):
         return
 
     # top line too long.. so animate until there's another input event
-    aniPosition = 0
-    firstFrame = True
-    delta = 1
+    s = text[0]
     while inputClock == gInputClock:
-        ### render partial menu text
-        aniText = text[0][aniPosition: aniPosition + maxWidth]
-        print("rendering on line %d -- %s" % (1, aniText, ))
-        # Pack current frame of top-row animation into framebuffer list with static truncated bottom row
-        framebuffer = [aniText[:maxWidth], text[1][:maxWidth]]
-        print(framebuffer)
-        # Send the framebuffer to the LCD
-        menu.write_to_lcd(framebuffer)
+        for i in range(len(s) - maxWidth + 1):
+            # prepend cursor character in front of top menu item, blank space in front of bottom
+            framebuffer = ['>' + s[i:i+15], ' ' + text[1][:maxWidth]]
+            menu.write_to_lcd(framebuffer)
+            print("rendering on line %d -- %s" % (1, framebuffer[0], ))
+            print("rendering on line %d -- %s" % (2, framebuffer[1], ))
+            if i == 0 or i == len(s) - 15:
+                print('slow')
+                delay=1.5
+            else:
+                print('fast')
+                delay=0.15
 
-        ### determine next state
-        aniPosition += delta
-        if aniPosition >= (len(text[0]) - maxWidth):
-            delta = -1
-        elif aniPosition <= 0:
-            delta = 1
-
-        ### sleep, letting other co-routines run
-        if firstFrame:
-            await asyncio.sleep(1.5)
-        else:
-            await asyncio.sleep(0.15)
-        firstFrame = False
+            ### sleep, letting other co-routines run
+            await asyncio.sleep(delay)
 
 #####################################################################
 # set up rotatary encoder input event dispatching
