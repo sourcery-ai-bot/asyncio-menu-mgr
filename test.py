@@ -8,7 +8,6 @@ from rpilcdmenu.items import *
 
 menu = RpiLCDMenu()
 eventLoop = asyncio.get_event_loop()
-inVolume=False
 gInputClock = 0
 
 # This is called in our main thread .. in FIFO order with everything else
@@ -46,28 +45,38 @@ async def onRenderMenuItem(inputClock, text):
             line = text.index(row) + 1
             print("rendering on line %s -- %s" % (line, row[:maxWidth]))
         # We're going to truncate the bottom line if it's too long
-        text = [text[0], text[1][:maxWidth]]
+        text = ['>' + text[0], ' ' + text[1][:maxWidth]]
         menu.write_to_lcd(text)
         return
 
     # top line too long.. so animate until there's another input event
-    s = text[0]
+    aniPosition = 0
     while inputClock == gInputClock:
-        for i in range(len(s) - maxWidth + 1):
-            # prepend cursor character in front of top menu item, blank space in front of bottom
-            framebuffer = ['>' + s[i:i+15], ' ' + text[1][:maxWidth]]
-            menu.write_to_lcd(framebuffer)
-            print("rendering on line %d -- %s" % (1, framebuffer[0], ))
-            print("rendering on line %d -- %s" % (2, framebuffer[1], ))
-            if i == 0 or i == len(s) - 15:
-                print('slow')
-                delay=1.5
-            else:
-                print('fast')
-                delay=0.15
+        ### render partial menu text
+        aniText = text[0][aniPosition: aniPosition + maxWidth]
+        # prepend cursor character in front of top menu item, blank space in front of bottom
+        framebuffer = ['>' + aniText[:maxWidth], ' ' + text[1][:maxWidth]]
+        print("rendering on line %d -- %s" % (1, framebuffer[0], ))
+        print("rendering on line %d -- %s" % (2, framebuffer[1], ))
+        # Send the framebuffer to the LCD
+        menu.write_to_lcd(framebuffer)
 
-            ### sleep, letting other co-routines run
-            await asyncio.sleep(delay)
+        ### determine next state
+        if aniPosition == 0 or aniPosition == len(text[0]) - maxWidth:
+            print('slow')
+            delay=1.5
+        else:
+            print('fast')
+            delay=0.15
+
+        aniPosition += 1
+        # Restart the animation once the whole row has been scrolled
+        if aniPosition >= (len(text[0]) - maxWidth + 1):
+            aniPosition = 0
+
+        ### sleep, letting other co-routines run
+        await asyncio.sleep(delay)
+
 
 #####################################################################
 # set up rotatary encoder input event dispatching
