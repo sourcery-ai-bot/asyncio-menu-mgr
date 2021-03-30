@@ -62,7 +62,7 @@ async def onRenderMenuItem(inputClock, text):
         menu.write_to_lcd(framebuffer)
 
         ### determine next state
-        if aniPosition == 0 or aniPosition == len(text[0]) - maxWidth:
+        if aniPosition in [0, len(text[0]) - maxWidth]:
             print('slow')
             delay=1.5
         else:
